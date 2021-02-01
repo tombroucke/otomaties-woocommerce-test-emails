@@ -15,7 +15,9 @@
 
 namespace Otomaties\WC_Test_Emails;
 
-if ( ! defined( 'ABSPATH' ) ) exit;
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
 
 class WC_Test_Emails {
 
@@ -23,20 +25,19 @@ class WC_Test_Emails {
 
 	/**
 	 * Creates or returns an instance of this class.
+	 *
 	 * @since  1.0.0
 	 * @return WC_Test_Emails A single instance of this class.
 	 */
 	public static function get_instance() {
 		if ( null === self::$instance ) {
-			self::$instance = new self;
+			self::$instance = new self();
 		}
 
 		return self::$instance;
 	}
-	public function __construct()
-	{
-
-		if( is_admin() && current_user_can('manage_woocommerce')  ){
+	public function __construct() {
+		if ( is_admin() && current_user_can( 'manage_woocommerce' ) ) {
 			$this->init();
 		}
 	}
@@ -47,43 +48,43 @@ class WC_Test_Emails {
 		add_action( 'woocommerce_email_setting_column_preview', array( $this, 'settings_preview_button' ), 10 );
 	}
 
-	public function preview_email()
-	{
-		$action       = filter_input( INPUT_GET, 'action', FILTER_SANITIZE_STRING );
-		if( $action == 'preview_email' ) {
-			global $order;
+	public function preview_email() {
+		$action = filter_input( INPUT_GET, 'action', FILTER_SANITIZE_STRING );
+		if ( 'preview_email' == $action ) {
 
-			$email_type     = filter_input( INPUT_GET, 'type', FILTER_SANITIZE_STRING );
-			$order_id       = filter_input( INPUT_GET, 'order', FILTER_SANITIZE_NUMBER_INT );
-			$order          = new \WC_Order( $order_id );
+			$email_type = filter_input( INPUT_GET, 'type', FILTER_SANITIZE_STRING );
+			$order_id   = filter_input( INPUT_GET, 'order', FILTER_SANITIZE_NUMBER_INT );
+			$order      = new \WC_Order( $order_id );
+			$user       = $order->get_user();
+			$class      = $this->get_email_type( $email_type );
 
-			$email;
-			$class          = $this->get_email_type($email_type);
-
-			if ($class) {
-				$email          = WC()->mailer()->emails[$class];
-				$email->object  = $order;
-
-				echo $this->style_inline($email->get_content_html());
+			if ( $class ) {
+				$email             = WC()->mailer()->emails[ $class ];
+				$email->user_login = $user->get( 'user_login' );
+				$email->object     = $order;
+				$content           = $email->get_content_html();
+				if ( 'html' == $email->email_type ) {
+					$content = $this->style_inline( $content );
+				}
+				echo $content;
 			} else {
-				throw new \Exception( sprintf( 'Email type %s doesn\'t exist', $email_type ), 1);
+				throw new \Exception( sprintf( 'Email type %s doesn\'t exist', $email_type ), 1 );
 
 			}
 			die();
+
 		}
 	}
 
-	private function get_email_type($email_type)
-	{
+	private function get_email_type( $email_type ) {
 		$types = $this->get_email_types();
-		if (isset($types[$email_type])) {
-			return $types[$email_type];
+		if ( isset( $types[ $email_type ] ) ) {
+			return $types[ $email_type ];
 		}
 		return false;
 	}
 
-	private function get_email_types()
-	{
+	private function get_email_types() {
 		WC();
 		return array(
 			'cancelled_order'                   => 'WC_Email_Cancelled_Order',
@@ -112,8 +113,7 @@ class WC_Test_Emails {
 		);
 	}
 
-	public function style_inline($content)
-	{
+	public function style_inline( $content ) {
 		$emails = new \WC_Email();
 
 		if ( in_array( $emails->get_content_type(), array( 'text/html', 'multipart/alternative' ), true ) ) {
@@ -140,39 +140,38 @@ class WC_Test_Emails {
 		return $content;
 	}
 
-	public function settings_preview_column($columns)
-	{
-		$columns = array_slice($columns, 0, 4, true) +
-		array("preview" => __('Preview', 'woocommerce-test-emails')) +
-		array_slice($columns, 4, count($columns)-4, true);
+	public function settings_preview_column( $columns ) {
+		$columns = array_slice( $columns, 0, 4, true ) +
+		array( 'preview' => __( 'Preview', 'woocommerce-test-emails' ) ) +
+		array_slice( $columns, 4, count( $columns ) - 4, true );
 
 		return $columns;
 	}
 
-	public function settings_preview_button($email)
-	{
-		$orders = wc_get_orders(array());
-		if( !empty( $orders ) ) {
-			$order  = $orders[0];
+	public function settings_preview_button( $email ) {
+		$orders = wc_get_orders( array() );
+		if ( ! empty( $orders ) ) {
+			$order = $orders[0];
 
-			$current_url = sprintf('%s://%s', (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http'), $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI']);
-			$target_url = add_query_arg( 
+			$request_uri = filter_input( INPUT_SERVER, 'REQUEST_URI', FILTER_SANITIZE_STRING );
+			$http_host   = filter_input( INPUT_SERVER, 'HTTP_HOST', FILTER_SANITIZE_STRING );
+			$current_url = sprintf( '%s://%s', ( isset( $_SERVER['HTTPS'] ) && 'on' === $_SERVER['HTTPS'] ? 'https' : 'http' ), $http_host . $request_uri );
+			$target_url  = add_query_arg(
 				array(
 					'action' => 'preview_email',
-					'type' => $email->id,
-					'order' => $order->get_ID()
+					'type'   => $email->id,
+					'order'  => $order->get_ID(),
 				),
 				$current_url
 			);
 			?>
 			<td>
-				<?php printf('<a class="button button-secondary" href="%s" target="_blank">%s</a>', $target_url, __('Preview e-mail', 'woocommerce-test-emails')); ?>
+				<?php echo esc_html( sprintf( '<a class="button button-secondary" href="%s" target="_blank">%s</a>', $target_url, __( 'Preview e-mail', 'woocommerce-test-emails' ) ) ); ?>
 			</td>
 			<?php
-		}
-		else{
+		} else {
 			?>
-			<td><?php _e('Preview will be available once an order has been placed.' , 'woocommerce-test-emails'); ?></td>
+			<td><?php echo esc_html( __( 'Preview will be available once an order has been placed.', 'woocommerce-test-emails' ) ); ?></td>
 			<?php
 		}
 	}
