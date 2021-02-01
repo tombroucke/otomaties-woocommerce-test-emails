@@ -166,12 +166,12 @@ class WC_Test_Emails {
 			);
 			?>
 			<td>
-				<?php echo esc_html( sprintf( '<a class="button button-secondary" href="%s" target="_blank">%s</a>', $target_url, __( 'Preview e-mail', 'woocommerce-test-emails' ) ) ); ?>
+				<?php echo sprintf( '<a class="button button-secondary" href="%s" target="_blank">%s</a>', $target_url, __( 'Preview e-mail', 'woocommerce-test-emails' ) ); ?>
 			</td>
 			<?php
 		} else {
 			?>
-			<td><?php echo esc_html( __( 'Preview will be available once an order has been placed.', 'woocommerce-test-emails' ) ); ?></td>
+			<td><?php echo __( 'Preview will be available once an order has been placed.', 'woocommerce-test-emails' ); ?></td>
 			<?php
 		}
 	}
