@@ -50,7 +50,13 @@ class WC_Test_Emails {
 
 	public function preview_email() {
 		$action = filter_input( INPUT_GET, 'action', FILTER_SANITIZE_STRING );
+		$lang = filter_input( INPUT_GET, 'lang', FILTER_SANITIZE_STRING );
+
 		if ( 'preview_email' == $action ) {
+			if ( function_exists('icl_object_id') && $lang ) {
+				global $sitepress;
+				$sitepress->switch_lang($lang);
+			}
 
 			$email_type = filter_input( INPUT_GET, 'type', FILTER_SANITIZE_STRING );
 			$order_id   = filter_input( INPUT_GET, 'order', FILTER_SANITIZE_NUMBER_INT );
@@ -72,7 +78,6 @@ class WC_Test_Emails {
 
 			}
 			die();
-
 		}
 	}
 
