@@ -1,5 +1,4 @@
 <?php
-<?php
 /**
  * Plugin Name:     Otomaties Woocommerce Test Emails
  * Description:     Preview WooCommerce Emails through WooCommerce->Settings->Emails
@@ -128,55 +127,57 @@ class WC_Test_Emails
         );
     }
 
-	/**
-	 * Apply inline styles to dynamic content.
-	 *
-	 * We only inline CSS for html emails, and to do so we use Emogrifier library (if supported).
-	 *
-	 * @version 4.0.0
-	 * @param string|null $content Content that will receive inline styles.
-	 * @return string
-	 */
-    public function style_inline( $content ) {
+    /**
+     * Apply inline styles to dynamic content.
+     *
+     * We only inline CSS for html emails, and to do so we use Emogrifier library (if supported).
+     *
+     * @version 4.0.0
+     * @param string|null $content Content that will receive inline styles.
+     * @return string
+     */
+    public function style_inline($content)
+    {
         ob_start();
-        wc_get_template( 'emails/email-styles.php' );
-        $css = apply_filters( 'woocommerce_email_styles', ob_get_clean(), $this );
+        wc_get_template('emails/email-styles.php');
+        $css = apply_filters('woocommerce_email_styles', ob_get_clean(), $this);
 
         $css_inliner_class = CssInliner::class;
 
-        if ( $this->supports_emogrifier() && class_exists( $css_inliner_class ) ) {
+        if ($this->supports_emogrifier() && class_exists($css_inliner_class)) {
             try {
-                $css_inliner = CssInliner::fromHtml( $content )->inlineCss( $css );
+                $css_inliner = CssInliner::fromHtml($content)->inlineCss($css);
 
-                do_action( 'woocommerce_emogrifier', $css_inliner, $this );
+                do_action('woocommerce_emogrifier', $css_inliner, $this);
 
                 $dom_document = $css_inliner->getDomDocument();
 
-                HtmlPruner::fromDomDocument( $dom_document )->removeElementsWithDisplayNone();
-                $content = CssToAttributeConverter::fromDomDocument( $dom_document )
+                HtmlPruner::fromDomDocument($dom_document)->removeElementsWithDisplayNone();
+                $content = CssToAttributeConverter::fromDomDocument($dom_document)
                     ->convertCssToVisualAttributes()
                     ->render();
-            } catch ( Exception $e ) {
+            } catch (Exception $e) {
                 $logger = wc_get_logger();
-                $logger->error( $e->getMessage(), array( 'source' => 'emogrifier' ) );
+                $logger->error($e->getMessage(), array( 'source' => 'emogrifier' ));
             }
         } else {
             $content = '<style type="text/css">' . $css . '</style>' . $content;
         }
 
-		return $content;
-	}
+        return $content;
+    }
 
-	/**
-	 * Return if emogrifier library is supported.
-	 *
-	 * @version 4.0.0
-	 * @since 3.5.0
-	 * @return bool
-	 */
-	protected function supports_emogrifier() {
-		return class_exists( 'DOMDocument' );
-	}
+    /**
+     * Return if emogrifier library is supported.
+     *
+     * @version 4.0.0
+     * @since 3.5.0
+     * @return bool
+     */
+    protected function supports_emogrifier()
+    {
+        return class_exists('DOMDocument');
+    }
 
     public function settings_preview_column($columns)
     {
