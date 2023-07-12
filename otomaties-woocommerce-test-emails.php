@@ -8,7 +8,7 @@
  * License:         GPLv2 or later
  * License URI:     http://www.opensource.org/licenses/gpl-license.php
  * Domain Path:     /languages
- * Version:           1.3.4
+ * Version:           1.3.5
  *
  * @package         Woocommerce_Test_Emails
  */
