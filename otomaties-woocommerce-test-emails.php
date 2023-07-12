@@ -58,8 +58,8 @@ class WC_Test_Emails
 
     public function preview_email()
     {
-        $action = filter_input(INPUT_GET, 'action', FILTER_SANITIZE_STRING);
-        $lang = filter_input(INPUT_GET, 'lang', FILTER_SANITIZE_STRING);
+        $action = sanitize_text_field($_GET['action'] ?? null);
+        $lang = sanitize_text_field($_GET['lang'] ?? null);
 
         if ('preview_email' == $action) {
             global $sitepress;
@@ -67,8 +67,8 @@ class WC_Test_Emails
                 $sitepress->switch_lang($lang);
             }
 
-            $email_type = filter_input(INPUT_GET, 'type', FILTER_SANITIZE_STRING);
-            $order_id   = filter_input(INPUT_GET, 'order', FILTER_SANITIZE_NUMBER_INT);
+            $email_type = sanitize_text_field($_GET['type'] ?? null);
+            $order_id = sanitize_text_field($_GET['order'] ?? null);
             $order      = new \WC_Order($order_id);
             $user       = $order->get_user();
             $class      = $this->get_email_type($email_type);
@@ -194,8 +194,8 @@ class WC_Test_Emails
         if (! empty($orders)) {
             $order = $orders[0];
 
-            $request_uri = filter_input(INPUT_SERVER, 'REQUEST_URI', FILTER_SANITIZE_STRING);
-            $http_host   = filter_input(INPUT_SERVER, 'HTTP_HOST', FILTER_SANITIZE_STRING);
+            $request_uri = sanitize_text_field($_SERVER['REQUEST_URI'] ?? null);
+            $http_host = sanitize_text_field($_SERVER['HTTP_HOST'] ?? null);
             $current_url = sprintf('%s://%s', ( isset($_SERVER['HTTPS']) && 'on' === $_SERVER['HTTPS'] ? 'https' : 'http' ), $http_host . $request_uri);
             $target_url  = add_query_arg(
                 array(
