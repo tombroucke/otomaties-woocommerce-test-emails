@@ -75,7 +75,7 @@ class WC_Test_Emails
 
             if ($class) {
                 $email             = WC()->mailer()->emails[ $class ];
-                $email->user_login = $user->get('user_login');
+                $email->user_login = $user ? $user->get('user_login') : 'guest';
                 $email->object     = $order;
                 $content           = $email->get_content_html();
                 if ('html' == $email->email_type) {
