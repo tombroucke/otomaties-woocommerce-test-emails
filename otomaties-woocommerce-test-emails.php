@@ -13,7 +13,7 @@
  * @package         Woocommerce_Test_Emails
  */
 
-namespace Otomaties\WC_Test_Emails;
+namespace Otomaties\WcTestEmails;
 
 use Pelago\Emogrifier\CssInliner;
 use Pelago\Emogrifier\HtmlProcessor\CssToAttributeConverter;
@@ -23,18 +23,18 @@ if (! defined('ABSPATH')) {
     exit;
 }
 
-class WC_Test_Emails
+class WcTestEmails
 {
-
+    
     private static $instance = null;
 
     /**
      * Creates or returns an instance of this class.
      *
      * @since  1.0.0
-     * @return WC_Test_Emails A single instance of this class.
+     * @return WcTestEmails A single instance of this class.
      */
-    public static function get_instance()
+    public static function instance()
     {
         if (null === self::$instance) {
             self::$instance = new self();
@@ -42,21 +42,22 @@ class WC_Test_Emails
 
         return self::$instance;
     }
+
+    /**
+     * Initialize
+     */
     public function __construct()
     {
-        if (is_admin() && current_user_can('manage_woocommerce')) {
-            $this->init();
+        if (!is_admin() || !current_user_can('manage_woocommerce')) {
+            return;
         }
+
+        add_action('admin_init', [$this, 'previewEmail']);
+        add_filter('woocommerce_email_setting_columns', [$this, 'settingsPreviewColumn']);
+        add_action('woocommerce_email_setting_column_preview', [$this, 'settingsPreviewButton'], 10);
     }
 
-    public function init()
-    {
-        add_action('admin_init', array( $this, 'preview_email' ));
-        add_filter('woocommerce_email_setting_columns', array( $this, 'settings_preview_column' ));
-        add_action('woocommerce_email_setting_column_preview', array( $this, 'settings_preview_button' ), 10);
-    }
-
-    public function preview_email()
+    public function previewEmail()
     {
         $action = sanitize_text_field($_GET['action'] ?? null);
         $lang = sanitize_text_field($_GET['lang'] ?? null);
@@ -67,38 +68,34 @@ class WC_Test_Emails
                 $sitepress->switch_lang($lang);
             }
 
-            $email_type = sanitize_text_field($_GET['type'] ?? null);
-            $order_id = sanitize_text_field($_GET['order'] ?? null);
-            $order      = new \WC_Order($order_id);
+            $emailType = sanitize_text_field($_GET['type'] ?? null);
+            $orderId    = sanitize_text_field($_GET['order'] ?? null);
+            $order      = new \WC_Order($orderId);
             $user       = $order->get_user();
-            $class      = $this->get_email_type($email_type);
-
+            $class      = $this->emailType($emailType);
             if ($class) {
-                $email             = WC()->mailer()->emails[ $class ];
+                $email             = WC()->mailer()->emails[$class];
                 $email->user_login = $user ? $user->get('user_login') : 'guest';
                 $email->object     = $order;
                 $content           = $email->get_content_html();
                 if ('html' == $email->email_type) {
-                    $content = $this->style_inline($content);
+                    $content = $this->styleInline($content);
                 }
                 echo $content;
             } else {
-                throw new \Exception(sprintf('Email type %s doesn\'t exist', $email_type), 1);
+                throw new \Exception(sprintf('Email type %s doesn\'t exist', $emailType), 1);
             }
             die();
         }
     }
 
-    private function get_email_type($email_type)
+    private function emailType($emailType)
     {
-        $types = $this->get_email_types();
-        if (isset($types[ $email_type ])) {
-            return $types[ $email_type ];
-        }
-        return false;
+        $emailTypes = $this->emailTypes();
+        return isset($emailTypes[$emailType]) ? $emailTypes[$emailType] : null;
     }
 
-    private function get_email_types()
+    private function emailTypes()
     {
         return apply_filters('woocommerce_test_emails_email_types', [
             'cancelled_order'                   => 'WC_Email_Cancelled_Order',
@@ -136,29 +133,28 @@ class WC_Test_Emails
      * @param string|null $content Content that will receive inline styles.
      * @return string
      */
-    public function style_inline($content)
+    public function styleInline($content)
     {
         ob_start();
         wc_get_template('emails/email-styles.php');
         $css = apply_filters('woocommerce_email_styles', ob_get_clean(), $this);
 
-        $css_inliner_class = CssInliner::class;
 
-        if ($this->supports_emogrifier() && class_exists($css_inliner_class)) {
+        if ($this->supportsEmogrifier() && class_exists(CssInliner::class)) {
             try {
-                $css_inliner = CssInliner::fromHtml($content)->inlineCss($css);
+                $cssInliner = CssInliner::fromHtml($content)->inlineCss($css);
 
-                do_action('woocommerce_emogrifier', $css_inliner, $this);
+                do_action('woocommerce_emogrifier', $cssInliner, $this);
 
-                $dom_document = $css_inliner->getDomDocument();
+                $domDocument = $cssInliner->getDomDocument();
 
-                HtmlPruner::fromDomDocument($dom_document)->removeElementsWithDisplayNone();
-                $content = CssToAttributeConverter::fromDomDocument($dom_document)
+                HtmlPruner::fromDomDocument($domDocument)->removeElementsWithDisplayNone();
+                $content = CssToAttributeConverter::fromDomDocument($domDocument)
                     ->convertCssToVisualAttributes()
                     ->render();
-            } catch (Exception $e) {
+            } catch (\Exception $e) {
                 $logger = wc_get_logger();
-                $logger->error($e->getMessage(), array( 'source' => 'emogrifier' ));
+                $logger->error($e->getMessage(), ['source' => 'emogrifier']);
             }
         } else {
             $content = '<style type="text/css">' . $css . '</style>' . $content;
@@ -174,49 +170,39 @@ class WC_Test_Emails
      * @since 3.5.0
      * @return bool
      */
-    protected function supports_emogrifier()
+    protected function supportsEmogrifier()
     {
         return class_exists('DOMDocument');
     }
 
-    public function settings_preview_column($columns)
+    public function settingsPreviewColumn($columns)
     {
         $columns = array_slice($columns, 0, 4, true) +
-        array( 'preview' => __('Preview', 'woocommerce-test-emails') ) +
+        ['preview' => __('Preview', 'woocommerce-test-emails')] +
         array_slice($columns, 4, count($columns) - 4, true);
 
         return $columns;
     }
 
-    public function settings_preview_button($email)
+    public function settingsPreviewButton($email)
     {
-        $orders = wc_get_orders(array());
-        if (! empty($orders)) {
+        $orders = wc_get_orders([]);
+        $output = __('Preview will be available once an order has been placed.', 'woocommerce-test-emails');
+        if (!empty($orders)) {
             $order = $orders[0];
 
-            $request_uri = sanitize_text_field($_SERVER['REQUEST_URI'] ?? null);
-            $http_host = sanitize_text_field($_SERVER['HTTP_HOST'] ?? null);
-            $current_url = sprintf('%s://%s', ( isset($_SERVER['HTTPS']) && 'on' === $_SERVER['HTTPS'] ? 'https' : 'http' ), $http_host . $request_uri);
-            $target_url  = add_query_arg(
-                array(
-                    'action' => 'preview_email',
-                    'type'   => $email->id,
-                    'order'  => $order->get_ID(),
-                ),
-                $current_url
-            );
-            ?>
-            <td>
-                <?php echo sprintf('<a class="button button-secondary" href="%s" target="_blank">%s</a>', $target_url, __('Preview e-mail', 'woocommerce-test-emails')); ?>
-            </td>
-            <?php
-        } else {
-            ?>
-            <td><?php echo __('Preview will be available once an order has been placed.', 'woocommerce-test-emails'); ?></td>
-            <?php
+            $requestUri = sanitize_text_field($_SERVER['REQUEST_URI'] ?? null);
+            $httpHost = sanitize_text_field($_SERVER['HTTP_HOST'] ?? null);
+            $currentUrl = sprintf('%s://%s', ( isset($_SERVER['HTTPS']) && 'on' === $_SERVER['HTTPS'] ? 'https' : 'http' ), $httpHost . $requestUri);
+            $targetUrl  = add_query_arg([
+                'action' => 'preview_email',
+                'type'   => $email->id,
+                'order'  => $order->get_ID(),
+            ], $currentUrl);
+            $output = sprintf('<a class="button button-secondary" href="%s" target="_blank">%s</a>', $targetUrl, __('Preview e-mail', 'woocommerce-test-emails'));
         }
+        printf('<td>%s</td>', $output);
     }
 }
 
-add_action('plugins_loaded', array( 'Otomaties\WC_Test_Emails\\WC_Test_Emails', 'get_instance' ));
-
+add_action('plugins_loaded', ['Otomaties\WcTestEmails\\WcTestEmails', 'instance']);
