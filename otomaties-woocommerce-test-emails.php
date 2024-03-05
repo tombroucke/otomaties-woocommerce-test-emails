@@ -100,7 +100,7 @@ class WC_Test_Emails
 
     private function get_email_types()
     {
-        return array(
+        return apply_filters('woocommerce_test_emails_email_types', [
             'cancelled_order'                   => 'WC_Email_Cancelled_Order',
             'customer_completed_order'          => 'WC_Email_Customer_Completed_Order',
             'customer_invoice'                  => 'WC_Email_Customer_Invoice',
@@ -124,7 +124,7 @@ class WC_Test_Emails
             'suspended_subscription'            => 'WCS_Email_On_Hold_Subscription',
             'expired_subscription'              => 'WCS_Email_Expired_Subscription',
             'payment_retry'                     => 'WCS_Email_Payment_Retry',
-        );
+        ]);
     }
 
     /**
