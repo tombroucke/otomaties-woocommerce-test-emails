@@ -1,6 +1,6 @@
-=== Otomaties Woocommerce Test Emails ===
+=== Otomaties Woocommerce Preview Emails ===
 Contributors: tompoezie
-Tags: woocommerce, test, emails, 
+Tags: woocommerce, test, preview, emails, 
 Requires at least: 5.0
 Tested up to: 5.4.1
 Requires PHP: 7.0
@@ -17,6 +17,12 @@ To be able to preview e-mails, you should have at least 1 order. When previewing
 == Changelog ==
 
 *** Otomaties Woocommerce Test Emails ***
+
+= 2.0.0 =
+* Added support for failed emails
+* Require PHP 8.x
+* Refactor code
+* Added docblocks
 
 = 1.1.0 =
 * Initial release
