@@ -47,7 +47,7 @@ class WcPreviewEmails
      */
     public function previewEmail() : void
     {
-        if ('preview_email' !== $_GET['action']) {
+        if ('preview_email' !== ($_GET['action'] ?? null)) {
             return;
         }
 
